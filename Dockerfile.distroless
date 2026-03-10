@@ -1,0 +1,19 @@
+# ── Stage 1: build ─────────────────────────────────────────────────────────────
+# rust:alpine produces statically-linked musl binaries suitable for distroless/static.
+FROM rust:alpine AS builder
+
+RUN apk add --no-cache musl-dev
+
+WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+
+RUN cargo build --release
+
+# ── Stage 2: runtime ──────────────────────────────────────────────────────────
+FROM gcr.io/distroless/static:nonroot
+
+COPY --from=builder /app/target/release/simple_webserver_8080 /
+
+EXPOSE 8080
+CMD ["/simple_webserver_8080"]
