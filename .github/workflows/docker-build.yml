@@ -44,6 +44,26 @@ jobs:
         id: date
         run: echo "tag=$(date -u +'%Y.%m.%d')" >> "$GITHUB_OUTPUT"
 
+      - name: Build amd64 image for testing
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          load: true
+          tags: ${{ matrix.image }}:test
+
+      - name: Test container returns HTTP 200
+        run: |
+          docker run -d --name test-container -p 8080:8080 ${{ matrix.image }}:test
+          trap 'docker stop test-container; docker rm test-container' EXIT
+          STATUS=''
+          for i in $(seq 1 10); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080) && break || sleep 1
+          done
+          echo "HTTP status: $STATUS"
+          [ "$STATUS" = "200" ]
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
