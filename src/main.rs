@@ -55,6 +55,61 @@ fn is_leap(year: u32) -> bool {
     (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{Duration, UNIX_EPOCH};
+
+    #[test]
+    fn test_format_time_epoch() {
+        assert_eq!(format_time(UNIX_EPOCH), "1970-01-01 00:00:00.000Z");
+    }
+
+    #[test]
+    fn test_format_time_millis() {
+        // 123 ms into the epoch
+        let t = UNIX_EPOCH + Duration::from_millis(123);
+        assert_eq!(format_time(t), "1970-01-01 00:00:00.123Z");
+    }
+
+    #[test]
+    fn test_format_time_y2k() {
+        // 2000-01-01 00:00:00.000Z = 946684800s
+        let t = UNIX_EPOCH + Duration::from_secs(946684800);
+        assert_eq!(format_time(t), "2000-01-01 00:00:00.000Z");
+    }
+
+    #[test]
+    fn test_format_time_leap_day() {
+        // 2024-02-29 12:34:56.789Z = 1709210096.789s (2024 is a leap year)
+        let t = UNIX_EPOCH + Duration::from_millis(1709210096789);
+        assert_eq!(format_time(t), "2024-02-29 12:34:56.789Z");
+    }
+
+    #[test]
+    fn test_format_time_end_of_year() {
+        // 2025-12-31 23:59:59.001Z = 1767225599.001s
+        let t = UNIX_EPOCH + Duration::from_millis(1767225599001);
+        assert_eq!(format_time(t), "2025-12-31 23:59:59.001Z");
+    }
+
+    #[test]
+    fn test_format_time_century_non_leap() {
+        // 2100-03-01 00:00:00.000Z — 2100 is NOT a leap year (div by 100 but not 400)
+        let t = UNIX_EPOCH + Duration::from_secs(4107542400);
+        assert_eq!(format_time(t), "2100-03-01 00:00:00.000Z");
+    }
+
+    #[test]
+    fn test_is_leap() {
+        assert!(is_leap(2000)); // divisible by 400 → leap
+        assert!(is_leap(2024)); // divisible by 4, not 100 → leap
+        assert!(!is_leap(1900)); // divisible by 100, not 400 → not leap
+        assert!(!is_leap(2023)); // not divisible by 4 → not leap
+        assert!(!is_leap(2100)); // divisible by 100, not 400 → not leap
+    }
+}
+
 fn main() {
     let addr = "[::]:8080";
     let listener = TcpListener::bind(addr).expect("Failed to bind to [::]:8080");
