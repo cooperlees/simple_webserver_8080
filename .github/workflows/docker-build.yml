@@ -1,0 +1,51 @@
+name: Docker Build
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  docker-build:
+    name: Build ${{ matrix.image }} (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dockerfile: Dockerfile.alpine
+            image: simple_webserver_8080-alpine
+            platform: linux/amd64
+          - dockerfile: Dockerfile.alpine
+            image: simple_webserver_8080-alpine
+            platform: linux/arm64
+          - dockerfile: Dockerfile.distroless
+            image: simple_webserver_8080-distroless
+            platform: linux/amd64
+          - dockerfile: Dockerfile.distroless
+            image: simple_webserver_8080-distroless
+            platform: linux/arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          push: false
+          tags: ${{ matrix.image }}:latest

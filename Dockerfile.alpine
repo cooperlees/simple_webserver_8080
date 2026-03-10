@@ -1,0 +1,18 @@
+# ── Stage 1: build ─────────────────────────────────────────────────────────────
+FROM rust:alpine AS builder
+
+RUN apk add --no-cache musl-dev
+
+WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+
+RUN cargo build --release
+
+# ── Stage 2: runtime ──────────────────────────────────────────────────────────
+FROM alpine:latest
+
+COPY --from=builder /app/target/release/simple_webserver_8080 /usr/local/bin/
+
+EXPOSE 8080
+CMD ["simple_webserver_8080"]
